@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>मेरा किराना स्टोर</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f8f8; margin: 0; padding: 0; }
+        header { background: #ff9f00; color: #000; padding: 1rem; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { margin: 0; font-size: 1.8rem; }
+        #cart-icon { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; cursor: pointer; }
+        #items { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; padding: 1rem; }
+        .item { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; padding: 0.8rem; }
+        .item img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; }
+        .item h3 { font-size: 0.95rem; margin: 0.5rem 0; }
+        .item p { font-weight: bold; color: #ff9f00; }
+        .mode-btns { display: flex; justify-content: center; gap: 0.5rem; margin: 0.5rem 0; }
+        .mode-btn { padding: 0.4rem 0.8rem; background: #f0f0f0; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .mode-btn.active { background: #ff9f00; color: white; }
+        .qty-input { width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; }
+        .add-btn { background: #fb641b; color: white; border: none; padding: 0.6rem; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 200; }
+        .modal-content { background: white; padding: 1.5rem; border-radius: 10px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .close { float: right; font-size: 2rem; cursor: pointer; }
+        .cart-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        input { width: 100%; padding: 0.7rem; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 4px; }
+        #whatsapp-btn { background: #25D366; color: white; border: none; padding: 1rem; width: 100%; border-radius: 8px; cursor: pointer; font-size: 1.2rem; margin-top: 1rem; }
+        #whatsapp-icon { position: fixed; bottom: 20px; right: 20px; background: #25D366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 300; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>मेरा किराना स्टोर</h1>
+        <div id="cart-icon"><i class="fas fa-shopping-cart"></i> (<span id="cart-count">0</span>)</div>
+    </header>
+
+    <section id="items"></section>
+
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h2>आपका कार्ट</h2>
+            <div id="cart-items"></div>
+            <p style="font-weight:bold;font-size:1.2rem;margin-top:1rem;">कुल: ₹<span id="cart-total">0</span></p>
+            <input type="text" id="customer-name" placeholder="नाम">
+            <input type="tel" id="customer-phone" placeholder="WhatsApp नंबर">
+            <input type="text" id="customer-address" placeholder="पता">
+            <button id="whatsapp-btn"><i class="fab fa-whatsapp"></i> WhatsApp पर बिल भेजें</button>
+        </div>
+    </div>
+
+    <div id="whatsapp-icon"><i class="fab fa-whatsapp"></i></div>
+
+    <script>
+        const items = [
+            { name: "जवाइन / Javain", price: 300, unit: "kg", img: "https://m.media-amazon.com/images/I/81KqsiN7gPL._AC_UL600_QL65_.jpg" },
+            { name: "मंगरैल / Mangrail", price: 350, unit: "kg", img: "https://m.media-amazon.com/images/I/71nXjN9L4YL._AC_UL600_QL65_.jpg" },
+            { name: "मेथी / Methi", price: 120, unit: "kg", img: "https://m.media-amazon.com/images/I/81e8mP5q5YL._AC_UL600_QL65_.jpg" },
+            { name: "सौफ / Saunf", price: 280, unit: "kg", img: "https://m.media-amazon.com/images/I/81f6Sw+AOHL._AC_UL600_QL65_.jpg" },
+            { name: "तील / Til", price: 280, unit: "kg", img: "https://m.media-amazon.com/images/I/71v6n7rR1YL._AC_UL600_QL65_.jpg" },
+            { name: "गड़ी / Gadi", price: 500, unit: "kg", img: "https://m.media-amazon.com/images/I/71g4rW9u2JL._AC_UL600_QL65_.jpg" },
+            { name: "किसमिस / Kismis", price: 580, unit: "kg", img: "https://m.media-amazon.com/images/I/71e4p4z3vYL._AC_UL600_QL65_.jpg" },
+            { name: "काजु / Kaju", price: 110, unit: "kg", img: "https://m.media-amazon.com/images/I/71cOaQXtUTL._AC_UL600_QL65_.jpg" },
+            { name: "काजु पैकेट / Kaju Packet", price: 270, unit: "packet", img: "https://m.media-amazon.com/images/I/71cOaQXtUTL._AC_UL600_QL65_.jpg" },
+            { name: "लावा / Lava", price: 120, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "धूप / Dhoop", price: 160, unit: "packet", img: "https://m.media-amazon.com/images/I/71jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "कपूर / Kapoor", price: 1000, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "जीरा / Jeera", price: 380, unit: "kg", img: "https://m.media-amazon.com/images/I/81E0XeTWwwL._AC_UL600_QL65_.jpg" },
+            { name: "मरिच / Mirch", price: 900, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "धनिया / Dhaniya", price: 140, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मरचा / Marcha", price: 250, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "हल्दी / Haldi", price: 240, unit: "kg", img: "https://m.media-amazon.com/images/I/41m5YU+-KvL._AC_UL600_QL65_.jpg" },
+            { name: "बेसन / Besan", price: 100, unit: "kg", img: "https://m.media-amazon.com/images/I/61MeDfOoGRL._AC_UL600_QL65_.jpg" },
+            { name: "सूजी / Suji", price: 42, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मैदा / Maida", price: 38, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "आटा / Aata", price: 34, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चावल (प्रभुभोग) / Rice (Prabhubhogh)", price: 50, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चावल (बाबा) / Rice (Baba)", price: 60, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चावल (मोटा) / Rice (Mota)", price: 35, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चावल (उसना) / Rice (Usna)", price: 50, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मसूर दाल / Masoor Dal", price: 90, unit: "kg", img: "https://m.media-amazon.com/images/I/81Z2D7d60sL._AC_UL600_QL65_.jpg" },
+            { name: "रहर दाल / Arhar Dal", price: 110, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चना दाना / Chana Dana", price: 90, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चना / Chana", price: 80, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मटर / Matar", price: 60, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मूंगदाल / Moong Dal", price: 140, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चिउड़ा / Chiwda", price: 45, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "सोयाबीन / Soyabin", price: 120, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "लहसुन / Lahsun", price: 120, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मिर्चा पाउडर / Chilli Powder", price: 300, unit: "kg", img: "https://m.media-amazon.com/images/I/51T38mIgawL._AC_UL600_QL65_.jpg" },
+            { name: "पास्ता / Pasta", price: 65, unit: "packet", img: "https://m.media-amazon.com/images/I/91AKUL-eRgL._AC_UL600_QL65_.jpg" },
+            { name: "सरसो / Sarso", price: 140, unit: "kg", img: "https://m.media-amazon.com/images/I/51NnfgNqz3L._AC_UL600_QL65_.jpg" },
+            { name: "रामदाना / Ram Dana", price: 140, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मिश्री / Mishri", price: 80, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "लाचीदाना / Lachidana", price: 80, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चायपत्ती / Tea", price: 250, unit: "kg", img: "https://m.media-amazon.com/images/I/61DegUW2CKL._AC_UL600_QL65_.jpg" },
+            { name: "धोई / Dhoi", price: 160, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "पेपर / Paper", price: 40, unit: "packet", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "हल्दी पाउडर / Haldi Powder", price: 300, unit: "kg", img: "https://m.media-amazon.com/images/I/81-pFYAZkdL._AC_UL600_QL65_.jpg" },
+            { name: "धनिया पाउडर / Dhaniya Powder", price: 200, unit: "kg", img: "https://m.media-amazon.com/images/I/81cIBbUMd6L._AC_UL600_QL65_.jpg" },
+            { name: "जीरा पाउडर / Jeera Powder", price: 450, unit: "kg", img: "https://m.media-amazon.com/images/I/81bxkjNsv4L._AC_UL600_QL65_.jpg" },
+            { name: "मरिच पाउडर / Mirch Powder", price: 1000, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "पंचफोरन / Panchforan", price: 300, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "इलाइची (छोटी) / Elaichi Small", price: 5000, unit: "kg", img: "https://m.media-amazon.com/images/I/71E10g4qZYL._AC_UL600_QL65_.jpg" },
+            { name: "इलाइची (बड़ी) / Elaichi Big", price: 3500, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "लौंग / Laung", price: 1500, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "जायफल / Jaiphal", price: 8, unit: "piece", img: "https://m.media-amazon.com/images/I/41w5nVQMQVL._AC_UL600_QL65_.jpg" },
+            { name: "सतुई / Satu", price: 120, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मक्का सतुई / Makka Satu", price: 0, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "मसाला / Masala", price: 300, unit: "kg", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "रानी 1L P / Rani 1L P", price: 182, unit: "L", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "रानी 1L B / Rani 1L B", price: 185, unit: "L", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "रानी 500ml P / Rani 500ml P", price: 95, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "रानी 500ml बोतल / Rani 500ml Bottle", price: 95, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "रानी 200ml / Rani 200ml", price: 45, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "चक्र 200ml / Chakra 200ml", price: 25, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "तील तेल 100ml / Til Oil 100ml", price: 20, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "तील तेल 200ml / Til Oil 200ml", price: 30, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "तील तेल 500ml / Til Oil 500ml", price: 65, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "तील तेल 1L / Til Oil 1L", price: 125, unit: "L", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "फॉर्च्यून 500ml / Fortune 500ml", price: 80, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "फॉर्च्यून 1L / Fortune 1L", price: 150, unit: "L", img: "https://m.media-amazon.com/images/I/610KL5ehOwL._AC_UL600_QL65_.jpg" },
+            { name: "बेस्ट चॉइस 500ml / Best Choice 500ml", price: 60, unit: "ml", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+            { name: "बेस्ट चॉइस 1L / Best Choice 1L", price: 110, unit: "L", img: "https://m.media-amazon.com/images/I/81jK4rR4tYL._AC_UL600_QL65_.jpg" },
+        ];
+
+        let cart = [];
+
+        const itemsContainer = document.getElementById('items');
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.innerHTML = `
+                <img src="\( {item.img}" alt=" \){item.name}" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
+                <h3>${item.name}</h3>
+                <p>₹${item.price} per ${item.unit}</p>
+                <div class="mode-btns">
+                    <div class="mode-btn active" data-mode="weight">वजन/g/ml</div>
+                    <div class="mode-btn" data-mode="price">पैसे से</div>
+                </div>
+                <input type="text" class="qty-input" placeholder="जैसे 0.5, 250g, 100">
+                <button class="add-btn">कार्ट में ऐड</button>
+            `;
+            const modeBtns = div.querySelectorAll('.mode-btn');
+            modeBtns.forEach(btn => btn.addEventListener('click', () => {
+                modeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }));
+            div.querySelector('.add-btn').addEventListener('click', () => addToCart(item, div));
+            itemsContainer.appendChild(div);
+        });
+
+        function addToCart(item, div) {
+            const mode = div.querySelector('.mode-btn.active').dataset.mode;
+            let input = div.querySelector('.qty-input').value.trim();
+            if (!input) return alert('कुछ डालो');
+
+            let qty = parseFloat(input.replace(/[gmlL]/gi, ''));
+            if (isNaN(qty)) return alert('सही संख्या डालो');
+
+            if (input.match(/g/i) && item.unit === 'kg') qty /= 1000;
+            if (input.match(/ml/i) && item.unit === 'L') qty /= 1000;
+
+            let total = mode === 'weight' ? item.price * qty : qty;
+            if (mode === 'price') qty = qty / item.price;
+
+            cart.push({ name: item.name, qty: qty.toFixed(2), unit: item.unit, rate: item.price, total: total.toFixed(2) });
+            updateCart();
+            div.querySelector('.qty-input').value = '';
+        }
+
+        function updateCart() {
+            document.getElementById('cart-count').innerText = cart.length;
+            const cartItems = document.getElementById('cart-items');
+            cartItems.innerHTML = '';
+            let grand = 0;
+            cart.forEach((c, i) => {
+                grand += parseFloat(c.total);
+                const p = document.createElement('div');
+                p.className = 'cart-item';
+                p.innerHTML = `<span>\( {c.name}<br> \){c.qty} \( {c.unit} × ₹ \){c.rate} = ₹${c.total}</span>
+                               <button onclick="cart.splice(${i},1); updateCart();">हटाएं</button>`;
+                cartItems.appendChild(p);
+            });
+            document.getElementById('cart-total').innerText = grand.toFixed(2);
+        }
+
+        document.getElementById('cart-icon').onclick = () => document.getElementById('cart-modal').style.display = 'flex';
+        document.querySelector('.close').onclick = () => document.getElementById('cart-modal').style.display = 'none';
+        document.getElementById('whatsapp-icon').onclick = () => document.getElementById('cart-modal').style.display = 'flex';
+
+        document.getElementById('whatsapp-btn').onclick = () => {
+            if (cart.length === 0) return alert('कार्ट खाली है');
+            let message = `नया ऑर्डर!\nनाम: ${document.getElementById('customer-name').value || 'अज्ञात'}\nफोन: ${document.getElementById('customer-phone').value || ''}\nपता: ${document.getElementById('customer-address').value || ''}\n\nआइटम्स:\n`;
+            cart.forEach(c => message += `${c.name} - ${c.qty} \( {c.unit} = ₹ \){c.total}\n`);
+            message += `\nकुल: ₹${document.getElementById('cart-total').innerText}`;
+            window.open(`https://wa.me/917260990920?text=${encodeURIComponent(message)}`);
+        };
+    </script>
+</body>
+</html>
