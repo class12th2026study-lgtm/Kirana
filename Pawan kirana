@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>मेरा किराना स्टोर - ऑनलाइन ऑर्डर</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 0; color: #333; }
+        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; position: relative; }
+        #cart-icon { position: absolute; top: 1rem; right: 1rem; background: #e74c3c; padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; }
+        h1 { margin: 0; font-size: 1.5rem; }
+        #items { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; padding: 1rem; }
+        .item { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; padding: 0.8rem; }
+        .item img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; }
+        .item h3 { margin: 0.8rem 0 0.4rem; font-size: 1rem; }
+        .item p { font-weight: bold; color: #27ae60; font-size: 0.9rem; }
+        .mode-btns { display: flex; justify-content: center; gap: 0.4rem; margin: 0.4rem 0; }
+        .mode-btn { padding: 0.4rem 0.8rem; background: #ecf0f1; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+        .mode-btn.active { background: #3498db; color: white; }
+        .qty-input { width: 100%; padding: 0.6rem; margin: 0.4rem 0; border: 1px solid #bdc3c7; border-radius: 5px; font-size: 0.9rem; }
+        .add-btn { background: #27ae60; color: white; border: none; padding: 0.6rem; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 1.5rem; border-radius: 10px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .close { float: right; font-size: 2rem; cursor: pointer; }
+        .cart-item { display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        input[type=text], input[type=email], input[type=tel] { width: 100%; padding: 0.7rem; margin: 0.4rem 0; border: 1px solid #bdc3c7; border-radius: 5px; }
+        #order-btn, #whatsapp-btn { background: #e74c3c; color: white; border: none; padding: 0.8rem; width: 100%; border-radius: 5px; cursor: pointer; font-size: 1rem; margin-top: 0.8rem; }
+        #whatsapp-btn { background: #25D366; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>मेरा किराना स्टोर</h1>
+        <div id="cart-icon">कार्ट (<span id="cart-count">0</span>)</div>
+    </header>
+
+    <section id="items"></section>
+
+    <div id="cart-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h2>आपका कार्ट</h2>
+            <div id="cart-items"></div>
+            <p style="font-size:1.2rem;font-weight:bold;margin-top:1rem;">कुल राशि: ₹<span id="cart-total">0</span></p>
+            
+            <input type="text" id="customer-name" placeholder="आपका नाम">
+            <input type="tel" id="customer-phone" placeholder="फोन नंबर (WhatsApp के लिए)">
+            <input type="text" id="customer-address" placeholder="पता (डिलीवरी)">
+            
+            <button id="order-btn">ऑर्डर कन्फर्म करें</button>
+            <button id="whatsapp-btn">WhatsApp पर शेयर करें</button>
+            <p style="font-size:0.8rem;margin-top:1rem;color:#7f8c8d;">बिल WhatsApp पर भेजें या डिलीवरी के लिए इस्तेमाल करें</p>
+        </div>
+    </div>
+
+    <script>
+        const items = [
+            { name: "जवाइन / Javain", price: 300, unit: "kg", img: "https://images.unsplash.com/photo-1606874416339-8b9e04a3233b?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "मंगरैल / Mangrail", price: 350, unit: "kg", img: "https://images.unsplash.com/photo-1612181312576-93a1f48e9a0f?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "मेथी / Methi", price: 120, unit: "kg", img: "https://images.unsplash.com/photo-1633510520771-9e81e3c47a0c?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "सौफ / Saunf", price: 280, unit: "kg", img: "https://images.unsplash.com/photo-1622819551844-8e8e8e64a4a3?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "तील / Til", price: 280, unit: "kg", img: "https://images.unsplash.com/photo-1570222090093-6ff3e5f46bc0?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "किसमिस / Kismis", price: 580, unit: "kg", img: "https://images.unsplash.com/photo-1601001838433-3b3e5edcfd5d?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "काजु / Kaju", price: 110, unit: "kg", img: "https://images.unsplash.com/photo-1606923519827-111a1e2e44e6?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "जीरा / Jeera", price: 380, unit: "kg", img: "https://images.unsplash.com/photo-1622819551844-8e8e8e64a4a3?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "हल्दी / Haldi", price: 240, unit: "kg", img: "https://images.unsplash.com/photo-1610823614001-3cd6c3c9b24b?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "बेसन / Besan", price: 110, unit: "kg", img: "https://images.unsplash.com/photo-1626082920279-3e9c3e9d5c5d?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "मसूर दाल / Masoor Dal", price: 90, unit: "kg", img: "https://images.unsplash.com/photo-1586201375761-838a19f0f2ee?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            { name: "फारचुन 1L / Fortune 1L", price: 155, unit: "L", img: "https://images.unsplash.com/photo-1604152321957-22d9e1a8e9e3?ixlib=rb-4.0.3&auto=format&fit=crop&q=80" },
+            // बाकी सारे आइटम्स तुम्हारी पुरानी लिस्ट से ऐड कर लो, ऊपर जैसे फोटो लिंक के साथ
+        ];
+
+        let cart = [];
+
+        const itemsContainer = document.getElementById('items');
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'item';
+            div.innerHTML = `
+                <img src="\( {item.img}" alt=" \){item.name}" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+                <h3>${item.name}</h3>
+                <p>₹${item.price} / ${item.unit}</p>
+                <div class="mode-btns">
+                    <div class="mode-btn active" data-mode="weight">वजन/g/ml</div>
+                    <div class="mode-btn" data-mode="price">पैसे से</div>
+                </div>
+                <input type="text" class="qty-input" placeholder="जैसे 0.5, 250g, 100">
+                <button class="add-btn">कार्ट में डालें</button>
+            `;
+            const modeBtns = div.querySelectorAll('.mode-btn');
+            modeBtns.forEach(btn => btn.addEventListener('click', () => {
+                modeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }));
+            div.querySelector('.add-btn').addEventListener('click', () => addToCart(item, div));
+            itemsContainer.appendChild(div);
+        });
+
+        function addToCart(item, div) {
+            const mode = div.querySelector('.mode-btn.active').dataset.mode;
+            let input = div.querySelector('.qty-input').value.trim();
+            if (!input) return alert('मात्रा डालें');
+
+            let qty = parseFloat(input.replace(/[gmlL]/g, ''));
+            if (isNaN(qty)) return alert('सही मात्रा डालें');
+
+            if (input.toLowerCase().includes('g') && item.unit === 'kg') qty /= 1000;
+            if (input.toLowerCase().includes('ml') && item.unit === 'L') qty /= 1000;
+
+            let total = mode === 'weight' ? item.price * qty : qty;
+            if (mode === 'price') qty = qty / item.price;
+
+            cart.push({name: item.name, qty: qty.toFixed(3), unit: item.unit, rate: item.price, total: total.toFixed(2)});
+            updateCart();
+            div.querySelector('.qty-input').value = '';
+        }
+
+        function updateCart() {
+            document.getElementById('cart-count').innerText = cart.length;
+            const cartItems = document.getElementById('cart-items');
+            cartItems.innerHTML = '';
+            let grand = 0;
+            cart.forEach((c, i) => {
+                grand += parseFloat(c.total);
+                const p = document.createElement('div');
+                p.className = 'cart-item';
+                p.innerHTML = `<span>\( {c.name}<br> \){c.qty} \( {c.unit} × ₹ \){c.rate} = ₹${c.total}</span>
+                               <button onclick="cart.splice(${i},1); updateCart();">हटाएं</button>`;
+                cartItems.appendChild(p);
+            });
+            document.getElementById('cart-total').innerText = grand.toFixed(2);
+        }
+
+        const modal = document.getElementById('cart-modal');
+        document.getElementById('cart-icon').onclick = () => modal.style.display = 'flex';
+        document.querySelector('.close').onclick = () => modal.style.display = 'none';
+
+        document.getElementById('order-btn').onclick = () => {
+            if (cart.length === 0) return alert('कार्ट खाली है');
+            const name = document.getElementById('customer-name').value || 'अज्ञात';
+            const phone = document.getElementById('customer-phone').value || '';
+            const address = document.getElementById('customer-address').value || 'कोई पता नहीं';
+
+            let message = `नया ऑर्डर!\nनाम: ${name}\nफोन: ${phone}\nपता: ${address}\n\nआइटम्स:\n`;
+            cart.forEach(c => message += `${c.name} - ${c.qty} \( {c.unit} = ₹ \){c.total}\n`);
+            message += `\nकुल: ₹${document.getElementById('cart-total').innerText}`;
+
+            alert(message);
+        };
+
+        document.getElementById('whatsapp-btn').onclick = () => {
+            if (cart.length === 0) return alert('कार्ट खाली है');
+            const name = document.getElementById('customer-name').value || 'अज्ञात';
+            const phone = document.getElementById('customer-phone').value || '';
+            const address = document.getElementById('customer-address').value || 'कोई पता नहीं';
+
+            let message = encodeURIComponent(`नया ऑर्डर!\nनाम: ${name}\nफोन: ${phone}\nपता: ${address}\n\nआइटम्स:\n`);
+            cart.forEach(c => message += encodeURIComponent(`${c.name} - ${c.qty} \( {c.unit} = ₹ \){c.total}\n`));
+            message += encodeURIComponent(`\nकुल: ₹${document.getElementById('cart-total').innerText}`);
+
+            const yourNumber = '917260990920'; // यहां अपना WhatsApp नंबर डालो (देश कोड के साथ, जैसे 919876543210)
+            window.open(`https://wa.me/\( {yourNumber}?text= \){message}`);
+        };
+    </script>
+</body>
+</html>
